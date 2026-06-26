@@ -2,7 +2,7 @@
 
 Web-based deployment tool for `nbn-daemon` and `unity` repositories.
 
-See the full project context in `functional_requirements.ipynb`.
+See the full project context in `functional_requirements.ipynb` (included at the repository root).
 
 ## Repository Structure
 
@@ -26,7 +26,7 @@ deploy-tool/
 - Git
 - uv (Python package manager)
 - SSH key with access to filers (port 222)
-- GitHub Personal Access Token
+- GitHub Personal Access Token (`repo` scope for private repository access)
 
 ## Quick Start
 
@@ -137,9 +137,11 @@ npm run build
 Then have FastAPI serve the built app in `backend/app/main.py` (after API routes):
 
 ```python
+from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 
-app.mount('/', StaticFiles(directory='../frontend/dist', html=True), name='frontend')
+frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+app.mount('/', StaticFiles(directory=str(frontend_dist), html=True), name='frontend')
 ```
 
 Run backend only:
