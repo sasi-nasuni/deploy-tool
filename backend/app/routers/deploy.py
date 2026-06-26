@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.models import DeployRequest, DeployResponse, DeploymentState
+from app.models import DeployRequest, DeployResponse, DeploymentResponse, DeploymentState
 from app.services.repo_manager import RepoManagerError
 from app.utils.validation import validate_branch_name, validate_ipv4_address
 
@@ -76,8 +76,8 @@ async def create_deployment(payload: DeployRequest, request: Request) -> DeployR
     return DeployResponse(deploymentId=deployment_id, status="started")
 
 
-@router.get("/deployments/{deployment_id}")
-async def get_deployment(deployment_id: str, request: Request):
+@router.get("/deployments/{deployment_id}", response_model=DeploymentResponse)
+async def get_deployment(deployment_id: str, request: Request) -> DeploymentResponse:
     deployment = _deployments(request).get(deployment_id)
     if deployment is None:
         raise HTTPException(status_code=404, detail="Deployment not found")

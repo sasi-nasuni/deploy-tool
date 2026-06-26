@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
@@ -56,7 +56,6 @@ class DeploymentState:
     exit_code: int | None
     started_at: datetime
     completed_at: datetime | None = None
-    logs: list[dict] = field(default_factory=list)
 
     def to_response(self) -> DeploymentResponse:
         return DeploymentResponse(
