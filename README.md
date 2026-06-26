@@ -2,7 +2,7 @@
 
 Web-based deployment tool for `nbn-daemon` and `unity` repositories.
 
-See the full project context in `/home/runner/work/deploy-tool/deploy-tool/functional_requirements.ipynb`.
+See the full project context in `functional_requirements.ipynb`.
 
 ## Repository Structure
 
@@ -155,4 +155,4 @@ uv run uvicorn app.main:app --port 8000
 - Local checked-out `nbn-daemon` / `unity` repos under `REPOS_BASE_PATH`
 
 For detailed functional requirements and flows, see:
-- `/home/runner/work/deploy-tool/deploy-tool/functional_requirements.ipynb`
+- `functional_requirements.ipynb`
