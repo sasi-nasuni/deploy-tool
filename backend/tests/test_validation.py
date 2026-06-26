@@ -6,7 +6,7 @@ from app.services.repo_manager import RepoManager
 from app.utils.validation import validate_branch_name, validate_ipv4_address
 
 
-class ValidationTests(unittest.TestCase):
+class TestValidation(unittest.TestCase):
     def test_validate_ipv4_accepts_valid_address(self) -> None:
         validate_ipv4_address("10.0.0.42")
 

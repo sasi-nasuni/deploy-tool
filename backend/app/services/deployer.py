@@ -52,8 +52,7 @@ class Deployer:
                 "system",
                 f"Deployment timed out after {self._settings.deploy_timeout_seconds}s.",
             )
-            if process.returncode is None:
-                return TIMEOUT_EXIT_CODE
+            return TIMEOUT_EXIT_CODE
 
         await asyncio.gather(stdout_task, stderr_task)
         return process.returncode if process.returncode is not None else 1
