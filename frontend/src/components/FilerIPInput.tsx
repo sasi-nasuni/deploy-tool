@@ -5,7 +5,8 @@ interface FilerIPInputProps {
   onChange: (nextValue: string) => void
 }
 
-const IPV4_REGEX = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
+const IPV4_REGEX =
+  /^((25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(25[0-5]|2[0-4]\d|[01]?\d?\d)$/
 
 export function isValidIPv4(value: string): boolean {
   return IPV4_REGEX.test(value)
