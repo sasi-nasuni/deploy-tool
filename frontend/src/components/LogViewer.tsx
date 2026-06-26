@@ -13,6 +13,7 @@ function lineClass(type: LogMessage['type']): string {
   switch (type) {
     case 'stderr':
       return 'text-orange-300'
+    case 'credential_required':
     case 'system':
       return 'text-cyan-300 italic'
     default:

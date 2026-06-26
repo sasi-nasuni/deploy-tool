@@ -6,6 +6,7 @@ import { FilerIPInput, isValidIPv4 } from './components/FilerIPInput'
 import { LogViewer } from './components/LogViewer'
 import { RepoSelector } from './components/RepoSelector'
 import { StatusIndicator } from './components/StatusIndicator'
+import { TokenModal } from './components/TokenModal'
 import { useBranches } from './hooks/useBranches'
 import { useDeploy } from './hooks/useDeploy'
 import { useQueryParams } from './hooks/useQueryParams'
@@ -20,7 +21,7 @@ function App() {
 
   const { branches, loading: branchLoading, error: branchError } = useBranches(repo)
   const { status, activeRepo, deploymentId, loading, error, startDeploy, setFinalStatus } = useDeploy()
-  const { logs, connected, done } = useWebSocket(deploymentId)
+  const { logs, connected, done, credentialPrompt, clearCredentialPrompt, submitCredential } = useWebSocket(deploymentId)
 
   useEffect(() => {
     setQueryParams({
@@ -74,6 +75,14 @@ function App() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      {credentialPrompt && (
+        <TokenModal
+          message={credentialPrompt}
+          onSubmit={submitCredential}
+          onClose={clearCredentialPrompt}
+        />
+      )}
+
       <div className="rounded-xl border border-slate-300 bg-slate-50 p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-slate-900">Deploy Tool</h1>

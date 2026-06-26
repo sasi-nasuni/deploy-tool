@@ -40,6 +40,15 @@ class BranchListResponse(BaseModel):
     branches: list[str]
 
 
+class CredentialTokenRequest(BaseModel):
+    token: str = Field(min_length=1)
+
+
+class CredentialTokenResponse(BaseModel):
+    status: Literal["stored"]
+    expires_at: datetime
+
+
 class StatusResponse(BaseModel):
     status: Literal["ok", "degraded"]
     repos: dict[str, bool]

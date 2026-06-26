@@ -50,3 +50,10 @@ export async function getStatus(): Promise<{ status: string; repos: Record<strin
 export async function getDeployment(id: string): Promise<DeploymentStatus> {
   return request(`/deployments/${encodeURIComponent(id)}`)
 }
+
+export async function submitCredentialToken(token: string): Promise<{ status: 'stored'; expires_at: string }> {
+  return request('/credentials/token', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+}
