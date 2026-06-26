@@ -6,7 +6,7 @@ from app.config import Settings
 
 
 class RepoManagerError(RuntimeError):
-    """Raised when repository operations fail."""
+    """Raised for git operation failures within RepoManager methods."""
 
 
 class RepoManager:

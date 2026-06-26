@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -9,6 +10,7 @@ from app.services.repo_manager import RepoManagerError
 from app.utils.validation import validate_branch_name, validate_ipv4_address
 
 router = APIRouter(prefix="/api", tags=["deploy"])
+logger = logging.getLogger(__name__)
 
 
 def _deployments(request: Request) -> dict[str, DeploymentState]:
@@ -68,10 +70,11 @@ async def create_deployment(payload: DeployRequest, request: Request) -> DeployR
             except Exception as exc:  # noqa: BLE001
                 deployment.status = "failed"
                 deployment.exit_code = 1
+                logger.exception("Unexpected deployment error for %s", deployment_id)
                 await streamer.broadcast(
                     deployment_id,
                     "system",
-                    f"Deployment failed ({exc.__class__.__name__}): {exc}",
+                    "Deployment failed due to an internal server error.",
                     done=True,
                 )
             finally:
