@@ -68,7 +68,12 @@ async def create_deployment(payload: DeployRequest, request: Request) -> DeployR
             except Exception as exc:  # noqa: BLE001
                 deployment.status = "failed"
                 deployment.exit_code = 1
-                await streamer.broadcast(deployment_id, "system", f"Deployment failed: {exc}", done=True)
+                await streamer.broadcast(
+                    deployment_id,
+                    "system",
+                    f"Deployment failed ({exc.__class__.__name__}): {exc}",
+                    done=True,
+                )
             finally:
                 deployment.completed_at = datetime.now(timezone.utc)
 

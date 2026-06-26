@@ -4,6 +4,8 @@ from pathlib import Path
 from app.config import Settings
 from app.services.log_streamer import LogStreamer
 
+TIMEOUT_EXIT_CODE = 124
+
 
 class Deployer:
     def __init__(self, settings: Settings, log_streamer: LogStreamer) -> None:
@@ -51,7 +53,7 @@ class Deployer:
                 f"Deployment timed out after {self._settings.deploy_timeout_seconds}s.",
             )
             if process.returncode is None:
-                return 124
+                return TIMEOUT_EXIT_CODE
 
         await asyncio.gather(stdout_task, stderr_task)
         return process.returncode if process.returncode is not None else 1
