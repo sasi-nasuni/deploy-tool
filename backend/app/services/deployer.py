@@ -50,9 +50,11 @@ class Deployer:
                 "system",
                 f"Deployment timed out after {self._settings.deploy_timeout_seconds}s.",
             )
+            if process.returncode is None:
+                return 124
 
         await asyncio.gather(stdout_task, stderr_task)
-        return process.returncode
+        return process.returncode if process.returncode is not None else 1
 
     async def deploy_nbn_daemon(self, filer_ip: str, deployment_id: str, repo_path: Path) -> int:
         await self._log_streamer.broadcast(deployment_id, "system", "Starting nbn-daemon deployment")

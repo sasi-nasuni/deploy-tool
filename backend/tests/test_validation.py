@@ -18,6 +18,10 @@ class ValidationTests(unittest.TestCase):
         output = "  origin/HEAD -> origin/main\n  origin/main\n  origin/feature/x\n"
         self.assertEqual(RepoManager._parse_remote_branches(output), ["main", "feature/x"])
 
+    def test_parse_remote_branches_deduplicates_entries(self) -> None:
+        output = "  origin/main\n  origin/main\n  origin/feature/x\n  origin/feature/x\n"
+        self.assertEqual(RepoManager._parse_remote_branches(output), ["main", "feature/x"])
+
     def test_validate_branch_name_rejects_invalid_ref(self) -> None:
         process = AsyncMock()
         process.communicate = AsyncMock(return_value=(b"", b"invalid"))
