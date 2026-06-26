@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { submitCredentialToken } from '../api/client'
 import type { LogMessage } from '../types'
 
 function createWebSocketUrl(deploymentId: string): string {
@@ -14,25 +15,59 @@ export function useWebSocket(deploymentId: string | null): {
   logs: LogMessage[]
   connected: boolean
   done: boolean
+  credentialPrompt: string | null
+  clearCredentialPrompt: () => void
+  submitCredential: (token: string) => Promise<void>
 } {
   const [logs, setLogs] = useState<LogMessage[]>([])
   const [connected, setConnected] = useState(false)
   const [done, setDone] = useState(false)
+  const [credentialPrompt, setCredentialPrompt] = useState<string | null>(null)
+  const socketRef = useRef<WebSocket | null>(null)
+
+  const clearCredentialPrompt = useCallback(() => {
+    setCredentialPrompt(null)
+  }, [])
+
+  const submitCredential = useCallback(async (token: string) => {
+    const trimmedToken = token.trim()
+    if (!trimmedToken) {
+      return
+    }
+
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: 'credential_response',
+          token: trimmedToken,
+        }),
+      )
+      setCredentialPrompt(null)
+      return
+    }
+
+    await submitCredentialToken(trimmedToken)
+    setCredentialPrompt(null)
+  }, [])
 
   useEffect(() => {
     if (!deploymentId) {
       setLogs([])
       setConnected(false)
       setDone(false)
+      setCredentialPrompt(null)
+      socketRef.current = null
       return
     }
 
     const url = createWebSocketUrl(deploymentId)
     const socket = new WebSocket(url)
+    socketRef.current = socket
 
     setLogs([])
     setConnected(false)
     setDone(false)
+    setCredentialPrompt(null)
 
     socket.onopen = () => {
       setConnected(true)
@@ -42,6 +77,9 @@ export function useWebSocket(deploymentId: string | null): {
       try {
         const message = JSON.parse(event.data) as LogMessage
         setLogs((previous) => [...previous, message])
+        if (message.type === 'credential_required') {
+          setCredentialPrompt(message.line)
+        }
         if (message.done) {
           setDone(true)
         }
@@ -70,10 +108,16 @@ export function useWebSocket(deploymentId: string | null): {
 
     socket.onclose = () => {
       setConnected(false)
+      if (socketRef.current === socket) {
+        socketRef.current = null
+      }
     }
 
     return () => {
       socket.close()
+      if (socketRef.current === socket) {
+        socketRef.current = null
+      }
       setConnected(false)
     }
   }, [deploymentId])
@@ -83,7 +127,10 @@ export function useWebSocket(deploymentId: string | null): {
       logs,
       connected,
       done,
+      credentialPrompt,
+      clearCredentialPrompt,
+      submitCredential,
     }),
-    [connected, done, logs],
+    [clearCredentialPrompt, connected, credentialPrompt, done, logs, submitCredential],
   )
 }

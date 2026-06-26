@@ -22,8 +22,10 @@ export interface DeploymentStatus {
   completedAt: string | null
 }
 
+export type LogMessageType = 'stdout' | 'stderr' | 'system' | 'credential_required'
+
 export interface LogMessage {
-  type: 'stdout' | 'stderr' | 'system'
+  type: LogMessageType
   line: string
   timestamp: string
   done?: boolean
