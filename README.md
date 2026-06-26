@@ -137,11 +137,11 @@ npm run build
 Then have FastAPI serve the built app in `backend/app/main.py` (after API routes):
 
 ```python
-from pathlib import Path
+import os
 from fastapi.staticfiles import StaticFiles
 
-frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
-app.mount('/', StaticFiles(directory=str(frontend_dist), html=True), name='frontend')
+frontend_dist = os.getenv("FRONTEND_DIST_PATH", "../frontend/dist")
+app.mount('/', StaticFiles(directory=frontend_dist, html=True), name='frontend')
 ```
 
 Run backend only:
