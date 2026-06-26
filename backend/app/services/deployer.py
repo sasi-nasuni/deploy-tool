@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 from pathlib import Path
 
 from app.config import Settings
@@ -140,7 +141,7 @@ class Deployer:
     @staticmethod
     def _has_codeartifact_auth_error(*outputs: str) -> bool:
         combined_output = "\n".join(outputs).lower()
-        return "codeartifact" in combined_output and ("401" in combined_output or "403" in combined_output)
+        return "codeartifact" in combined_output and re.search(r"\b(401|403)\b", combined_output) is not None
 
     async def deploy_nbn_daemon(self, filer_ip: str, deployment_id: str, repo_path: Path) -> int:
         await self._log_streamer.broadcast(deployment_id, "system", "Starting nbn-daemon deployment")

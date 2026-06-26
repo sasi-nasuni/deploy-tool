@@ -33,7 +33,9 @@ export function TokenModal({ message, onSubmit, onClose }: TokenModalProps) {
       <div className="w-96 rounded-lg bg-white p-6 shadow-xl">
         <p className="mb-4 text-gray-700">{message}</p>
         <input
-          type="text"
+          type="password"
+          aria-label="AWS CodeArtifact token"
+          autoComplete="off"
           placeholder="Paste token here"
           className="mb-4 w-full rounded border px-3 py-2 font-mono text-sm"
           value={token}

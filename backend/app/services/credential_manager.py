@@ -158,7 +158,7 @@ class CredentialManager:
             "-o",
             "ConnectTimeout=5",
             "-o",
-            "StrictHostKeyChecking=no",
+            "StrictHostKeyChecking=accept-new",
             f"{self._settings.developer_machine_user}@{ip_address}",
             remote_command,
         ]

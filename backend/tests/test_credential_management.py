@@ -89,7 +89,11 @@ class TestDeployerCredentialFlow(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(exit_code, 0)
                 self.assertEqual(deployer._run_process.await_count, 2)
                 self.assertIsNotNone(credential_manager.get_valid_token())
-                self.assertIn("second-token", credential_manager.get_valid_token())
+                self.assertEqual(credential_manager._token_data["token"], "second-token")
+                self.assertEqual(
+                    credential_manager.get_valid_token(),
+                    credential_manager._token_data["uv_extra_index_url"],
+                )
                 self.assertEqual(
                     [message_type for _, message_type, _, _ in log_streamer.messages].count("credential_required"),
                     2,
