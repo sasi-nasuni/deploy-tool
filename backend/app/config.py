@@ -1,36 +1,25 @@
-import os
-from functools import lru_cache
+from pathlib import Path
 
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    github_pat: str
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
     repos_base_path: str = "~/.deploy_tool/repos"
-    nbn_daemon_repo_url: str = "https://github.com/nasuni/nbn-daemon.git"
-    unity_repo_url: str = "https://github.com/nasuni/unity.git"
-    deploy_timeout_seconds: int = 1800
-    server_port: int = 8000
-    developer_machine_mac: str = ""
-    developer_machine_user: str = ""
-    developer_machine_ssh_port: int = 22
-    credential_refresh_interval_minutes: int = 30
-    aws_codeartifact_domain: str = "nasuni-portal"
-    aws_codeartifact_owner: str = "851725431039"
-    aws_codeartifact_repo: str = "nasuni-portal"
-    aws_profile: str = "portal-dev"
+    nbn_repo_name: str = "nbn-daemon"
+    unity_repo_name: str = "unity"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
-
-    @field_validator("developer_machine_user", mode="before")
-    @classmethod
-    def default_developer_machine_user(cls, value: str | None) -> str:
-        if value is None or not str(value).strip():
-            return os.environ.get("USER", "root")
-        return str(value)
+    aws_region: str = "us-east-1"
+    codeartifact_domain: str = "nasuni-portal"
+    codeartifact_owner: str = "851725431039"
+    codeartifact_repository: str = "nasuni-portal"
 
 
-@lru_cache(maxsize=1)
-def get_settings() -> Settings:
-    return Settings()
+settings = Settings()
+
+
+def repo_path(repo: str) -> Path:
+    base = Path(settings.repos_base_path).expanduser()
+    name = settings.nbn_repo_name if repo == "nbn-daemon" else settings.unity_repo_name
+    return base / name

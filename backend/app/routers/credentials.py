@@ -1,19 +1,18 @@
-from datetime import datetime
+from fastapi import APIRouter
 
-from fastapi import APIRouter, Request
-
-from app.models import CredentialTokenRequest, CredentialTokenResponse
+from app.models import CredentialStatusResponse
+from app.services.token_manager import TokenManager
 
 router = APIRouter(prefix="/api", tags=["credentials"])
 
 
-@router.post("/credentials/token", response_model=CredentialTokenResponse)
-async def store_credential_token(
-    payload: CredentialTokenRequest,
-    request: Request,
-) -> CredentialTokenResponse:
-    expires_at = request.app.state.deployer.submit_token(payload.token.strip())
-    return CredentialTokenResponse(
-        status="stored",
-        expires_at=datetime.fromisoformat(expires_at),
+@router.get("/credentials/status", response_model=CredentialStatusResponse)
+async def credentials_status() -> CredentialStatusResponse:
+    manager = TokenManager()
+    cached = manager.get_cached_token()
+    valid = manager.is_valid(cached)
+    return CredentialStatusResponse(
+        token_valid=valid,
+        token_expires_at=cached.expires_at if cached else None,
+        credentials_required=not valid,
     )

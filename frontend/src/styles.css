@@ -1,0 +1,188 @@
+:root {
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: #1b1f24;
+  background: radial-gradient(circle at top right, #f7f0d8, #d8e7f2 42%, #f5f7fb 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.card {
+  width: min(760px, 100%);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid #d6dce5;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 18px 40px rgba(39, 66, 89, 0.16);
+}
+
+h1 {
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  margin-top: 8px;
+  color: #5d6b78;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: #344350;
+}
+
+input,
+select,
+button {
+  border: 1px solid #c6d3df;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid #76a8d8;
+  border-color: transparent;
+}
+
+.aws-block {
+  border: 1px dashed #aac2d8;
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(240, 248, 255, 0.6);
+}
+
+.aws-title {
+  font-weight: 700;
+}
+
+.aws-note {
+  margin: 4px 0 10px;
+  color: #4f6273;
+  font-size: 13px;
+}
+
+button {
+  cursor: pointer;
+  background: linear-gradient(92deg, #2c7fb8, #3ba272);
+  color: white;
+  font-weight: 700;
+  border: none;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.status {
+  margin-top: 18px;
+  border-radius: 10px;
+  padding: 12px;
+  background: #eff3f8;
+  color: #23303d;
+  font-size: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.status.success {
+  background: #e9f8ef;
+  color: #14663f;
+}
+
+.status.failed {
+  background: #fdecec;
+  color: #8f2f2f;
+}
+
+.progress-wrap {
+  display: grid;
+  gap: 4px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #dbe6ef;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2c7fb8, #3ba272);
+  transition: width 220ms ease;
+}
+
+.progress-label {
+  font-size: 12px;
+  color: #536272;
+}
+
+.progress-meta {
+  font-size: 12px;
+  color: #536272;
+}
+
+.logs-panel {
+  margin-top: 16px;
+}
+
+.logs-panel h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #2e3e4d;
+}
+
+.logs-body {
+  border: 1px solid #cfdae4;
+  border-radius: 10px;
+  background: #f8fbff;
+  max-height: 260px;
+  overflow: auto;
+  padding: 10px;
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.logs-empty {
+  color: #6a7988;
+}
+
+.log-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-bottom: 1px dashed #e5edf5;
+  padding: 2px 0;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+}

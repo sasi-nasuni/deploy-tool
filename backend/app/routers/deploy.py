@@ -1,92 +1,104 @@
 import asyncio
-import logging
 from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.models import DeployRequest, DeployResponse, DeploymentResponse, DeploymentState
-from app.services.repo_manager import RepoManagerError
-from app.utils.validation import validate_branch_name, validate_ipv4_address
+from app.models import DeployRequest, DeployResponse, DeploymentStatusResponse
+from app.services.token_manager import TokenError
 
 router = APIRouter(prefix="/api", tags=["deploy"])
-logger = logging.getLogger(__name__)
-
-
-def _deployments(request: Request) -> dict[str, DeploymentState]:
-    return request.app.state.deployments
 
 
 @router.post("/deploy", response_model=DeployResponse)
-async def create_deployment(payload: DeployRequest, request: Request) -> DeployResponse:
-    try:
-        validate_ipv4_address(payload.filer_ip)
-        await validate_branch_name(payload.branch)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+async def start_deploy(payload: DeployRequest, request: Request) -> DeployResponse:
+    if payload.repo not in {"nbn-daemon", "unity"}:
+        raise HTTPException(status_code=400, detail="Unsupported repo")
 
     deployment_id = str(uuid4())
-    deployment = DeploymentState(
-        id=deployment_id,
-        repo=payload.repo,
-        branch=payload.branch,
-        filer_ip=payload.filer_ip,
-        status="queued",
-        exit_code=None,
-        started_at=datetime.now(timezone.utc),
-    )
-    _deployments(request)[deployment_id] = deployment
+    request.app.state.deployments[deployment_id] = {
+        "deployment_id": deployment_id,
+        "repo": payload.repo,
+        "branch": payload.branch,
+        "filer_ip": payload.filer_ip,
+        "status": "queued",
+        "current_phase": "queued",
+        "progress_percent": 0,
+        "eta_seconds": None,
+        "eta_confidence": "low",
+        "exit_code": None,
+        "started_at": datetime.now(timezone.utc),
+        "phase_started_at": datetime.now(timezone.utc),
+        "phase_durations": {},
+        "completed_at": None,
+    }
 
-    async def run_deployment() -> None:
-        locks: dict[str, asyncio.Lock] = request.app.state.repo_locks
-        repo_manager = request.app.state.repo_manager
-        deployer = request.app.state.deployer
-        streamer = request.app.state.log_streamer
+    async def run() -> None:
+        lock = request.app.state.repo_locks[payload.repo]
+        state = request.app.state.deployments[deployment_id]
+        eta_manager = request.app.state.eta_manager
 
-        lock = locks[payload.repo]
+        def set_phase(phase: str, progress: int) -> None:
+            now = datetime.now(timezone.utc)
+            prev_phase = state.get("current_phase")
+            prev_started_at = state.get("phase_started_at")
+            if isinstance(prev_phase, str) and isinstance(prev_started_at, datetime):
+                elapsed = max(0.0, (now - prev_started_at).total_seconds())
+                durations = state.setdefault("phase_durations", {})
+                durations[prev_phase] = durations.get(prev_phase, 0.0) + elapsed
+            state["current_phase"] = phase
+            state["phase_started_at"] = now
+            state["progress_percent"] = max(0, min(progress, 100))
+
         async with lock:
-            deployment.status = "running"
+            state["status"] = "running"
             try:
-                await streamer.broadcast(deployment_id, "system", "Starting git fetch/reset/checkout/rebase")
-                await repo_manager.prepare_branch(payload.repo, payload.branch)
-                repo_path = repo_manager.repo_path(payload.repo)
-                if payload.repo == "nbn-daemon":
-                    exit_code = await deployer.deploy_nbn_daemon(payload.filer_ip, deployment_id, repo_path)
-                else:
-                    exit_code = await deployer.deploy_unity(payload.filer_ip, deployment_id, repo_path)
+                set_phase("git_prep", 10)
+                await request.app.state.log_streamer.broadcast(deployment_id, f"Preparing {payload.repo} deployment")
+                import subprocess
 
-                deployment.exit_code = exit_code
-                deployment.status = "success" if exit_code == 0 else "failed"
-                await streamer.broadcast(
-                    deployment_id,
-                    "system",
-                    f"Deployment finished with exit code {exit_code}",
-                    done=True,
-                )
-            except RepoManagerError as exc:
-                deployment.status = "failed"
-                deployment.exit_code = 1
-                await streamer.broadcast(deployment_id, "system", str(exc), done=True)
+                repo_cwd = str(request.app.state.repo_path(payload.repo))
+                subprocess.run(["git", "fetch", "--all"], cwd=repo_cwd, check=False)
+                subprocess.run(["git", "checkout", payload.branch], cwd=repo_cwd, check=True)
+                subprocess.run(["git", "pull", "--rebase", "origin", payload.branch], cwd=repo_cwd, check=False)
+
+                set_phase("deploy_exec", 35)
+                code = await request.app.state.deployer.deploy(deployment_id, payload)
+                state["exit_code"] = code
+                state["status"] = "success" if code == 0 else "failed"
+                set_phase("finalize", 95)
+            except TokenError as exc:
+                state["status"] = "failed"
+                state["exit_code"] = 1
+                await request.app.state.log_streamer.broadcast(deployment_id, str(exc), done=True)
             except Exception as exc:  # noqa: BLE001
-                deployment.status = "failed"
-                deployment.exit_code = 1
-                logger.exception("Unexpected deployment error for %s", deployment_id)
-                await streamer.broadcast(
-                    deployment_id,
-                    "system",
-                    "Deployment failed due to an internal server error.",
-                    done=True,
-                )
+                state["status"] = "failed"
+                state["exit_code"] = 1
+                await request.app.state.log_streamer.broadcast(deployment_id, f"Deployment failed: {exc}", done=True)
             finally:
-                deployment.completed_at = datetime.now(timezone.utc)
+                now = datetime.now(timezone.utc)
+                current_phase = state.get("current_phase")
+                current_started_at = state.get("phase_started_at")
+                if isinstance(current_phase, str) and isinstance(current_started_at, datetime):
+                    elapsed = max(0.0, (now - current_started_at).total_seconds())
+                    durations = state.setdefault("phase_durations", {})
+                    durations[current_phase] = durations.get(current_phase, 0.0) + elapsed
 
-    asyncio.create_task(run_deployment())
-    return DeployResponse(deploymentId=deployment_id, status="started")
+                total = max(0.0, (now - state["started_at"]).total_seconds())
+                eta_manager.record_run(payload.repo, state.get("phase_durations", {}), total)
+                state["progress_percent"] = 100
+                state["completed_at"] = datetime.now(timezone.utc)
+
+    asyncio.create_task(run())
+    return DeployResponse(deployment_id=deployment_id, status="started")
 
 
-@router.get("/deployments/{deployment_id}", response_model=DeploymentResponse)
-async def get_deployment(deployment_id: str, request: Request) -> DeploymentResponse:
-    deployment = _deployments(request).get(deployment_id)
-    if deployment is None:
+@router.get("/deployments/{deployment_id}", response_model=DeploymentStatusResponse)
+async def deployment_status(deployment_id: str, request: Request) -> DeploymentStatusResponse:
+    state = request.app.state.deployments.get(deployment_id)
+    if state is None:
         raise HTTPException(status_code=404, detail="Deployment not found")
-    return deployment.to_response()
+    eta_seconds, confidence = request.app.state.eta_manager.estimate(state)
+    state["eta_seconds"] = eta_seconds
+    state["eta_confidence"] = confidence
+    return DeploymentStatusResponse(**state)
