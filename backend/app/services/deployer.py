@@ -37,7 +37,8 @@ class Deployer:
             command = ["python", "python/tools/sync-dev.py", "--restart", payload.filer_ip]
             post_sync_command = [
                 "ssh",
-                "-p222",
+                "-p",
+                "222",
                 f"root@{payload.filer_ip}",
                 "find /opt/nasuni/lib/nasuni/ -name '*.pyc' -delete && "
                 "find /opt/nasuni/lib/nasuni/ -name '*.pyo' -delete && "
