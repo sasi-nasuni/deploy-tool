@@ -61,7 +61,20 @@ export function App() {
   );
 
   const credentialsRequired = repo === "nbn-daemon" && Boolean(credentialStatus?.credentials_required);
+  // Restore deployment ID from localStorage on mount
+  useEffect(() => {
+    const savedId = localStorage.getItem("deploymentId");
+    if (savedId) {
+      setDeploymentId(savedId);
+    }
+  }, []);
 
+  // Save deployment ID to localStorage whenever it changes
+  useEffect(() => {
+    if (deploymentId) {
+      localStorage.setItem("deploymentId", deploymentId);
+    }
+  }, [deploymentId]);
   useEffect(() => {
     const run = async () => {
       const response = await fetch(`${API_BASE}/credentials/status`);
@@ -125,8 +138,46 @@ export function App() {
         const credentialResponse = await fetch(`${API_BASE}/credentials/status`);
         const credentialData = (await credentialResponse.json()) as CredentialStatus;
         setCredentialStatus(credentialData);
+        // Clear stored deployment ID on completion
+        localStorage.removeItem("deploymentId");
       }
     }, 1500);
+
+    // Restore or establish WebSocket connection
+    if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+      const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const ws = new WebSocket(`${wsProtocol}://${window.location.host}/api/ws/logs/${deploymentId}`);
+      wsRef.current = ws;
+      ws.onmessage = (event) => {
+        let payload: LogPayload | null = null;
+        try {
+          payload = JSON.parse(event.data) as LogPayload;
+        } catch {
+          return;
+        }
+
+        if (!payload || !payload.message) {
+          return;
+        }
+
+        setLogs((prev) => {
+          const next = [...prev, payload.message];
+          if (next.length > 500) {
+            return next.slice(next.length - 500);
+          }
+          return next;
+        });
+
+        setProgress((prev) => estimateProgress(payload!.message, prev));
+        if (payload.done) {
+          setProgress(100);
+        }
+      };
+
+      ws.onerror = () => {
+        setLogs((prev) => [...prev, "[websocket] log stream disconnected"]);
+      };
+    }
 
     return () => window.clearInterval(poll);
   }, [deploymentId]);
